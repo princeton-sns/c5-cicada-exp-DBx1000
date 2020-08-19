@@ -36,6 +36,9 @@
 #define RCU_ALLOC 					false
 #define RCU_ALLOC_SIZE     (20 * 1073741824UL)	// 20 GB
 
+// MICA Page pool size (in GiB)
+#define MICA_PAGE_POOL_SIZE                             32
+
 /***********************************************/
 // Concurrency Control
 /***********************************************/
@@ -101,8 +104,13 @@
 /***********************************************/
 // Logging
 /***********************************************/
-#define LOG_COMMAND					false
-#define LOG_REDO					false
+#define MICA_LOGGER MICA_LOG_NULL
+#define MICA_LOG_DIR "/mnt/huge/cicada/db"
+#define MICA_RELAY_DIR "/mnt/huge/cicada/relay"
+#define MICA_REPL_ENABLED false
+#define MICA_CCC MICA_CCC_NONE
+
+// LOG_BATCH_TIME doesn't seem to do anything
 #define LOG_BATCH_TIME				10 // in ms
 
 /***********************************************/
@@ -181,6 +189,9 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 #define TATP_SCALE_FACTOR 1
 #define TATP_SUB_SIZE (TATP_DEFAULT_NUM_SUBSCRIBERS * TATP_SCALE_FACTOR)
 
+// ==== [INSERT] ====
+#define INSERT_INSERTS_PER_TXN 1
+
 /***********************************************/
 // TODO centralized CC management.
 /***********************************************/
@@ -225,6 +236,7 @@ extern TestCases					g_test_case;
 #define TPCC						2
 #define TATP						3
 #define TEST						4
+#define INSERT					5
 // Concurrency Control Algorithm
 #define NO_WAIT						1
 #define WAIT_DIE					2
@@ -242,6 +254,12 @@ extern TestCases					g_test_case;
 #define SERIALIZABLE				1
 #define SNAPSHOT					2
 #define REPEATABLE_READ				3
+// MICA Loggers
+#define MICA_LOG_NULL 1
+#define MICA_LOG_MMAP 2
+// MICA CCC
+#define MICA_CCC_NONE 1
+#define MICA_CCC_COPYCAT 2
 // TIMESTAMP allocation method.
 #define TS_MUTEX					1
 #define TS_CAS						2

@@ -35,8 +35,13 @@ public:
 	MICAPagePool* mica_page_pools[2];
 	MICALogger* mica_logger;
 	MICADB* mica_db;
+#if MICA_REPL_ENABLED
+	MICADB* mica_replica;
 #endif
-
+#if MICA_CCC == MICA_CCC_COPYCAT
+  MICACCC* mica_ccc;
+#endif
+#endif
 	void init_mica();
 
 	// initialize the tables and indexes.

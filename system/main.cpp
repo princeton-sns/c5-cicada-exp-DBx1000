@@ -3,6 +3,7 @@
 #include "tpcc.h"
 #include "tatp.h"
 #include "test.h"
+#include "insert.h"
 #include "thread.h"
 #include "manager.h"
 #include "mem_alloc.h"
@@ -15,6 +16,8 @@
 #include "index_mica.h"
 #endif
 #include <thread>
+
+using mica::util::PosixIO;
 
 void* f(void*);
 
@@ -41,6 +44,9 @@ int main(int argc, char* argv[]) {
     case TEST:
       m_wl = new TestWorkload;
       ((TestWorkload*)m_wl)->tick();
+      break;
+    case INSERT:
+      m_wl = new insert_wl;
       break;
     default:
       assert(false);
@@ -301,6 +307,99 @@ int main(int argc, char* argv[]) {
   inter_commit_latency.print(stdout);
   printf("LatencyEnd\n");
 #endif
+
+#if MICA_REPL_ENABLED
+  {
+    printf("Copying DB log files to relay dir\n");
+    MICALogger* logger = m_wl->mica_logger;
+    logger->flush();
+
+    std::size_t len = DBConfig::kPageSize;
+    for (uint32_t thread_id = 0; thread_id < g_thread_cnt; thread_id++) {
+      for (uint64_t file_index = 0;; file_index++) {
+        std::string infname = std::string{MICA_LOG_DIR} + "/out." +
+                              std::to_string(thread_id) + "." +
+                              std::to_string(file_index) + ".log";
+
+        std::string outfname = std::string{MICA_RELAY_DIR} + "/out." +
+                               std::to_string(thread_id) + "." +
+                               std::to_string(file_index) + ".log";
+
+        if (!PosixIO::Exists(infname.c_str())) break;
+
+        int infd = PosixIO::Open(infname.c_str(), O_RDONLY);
+        void* inaddr =
+            PosixIO::Mmap(nullptr, len, PROT_READ, MAP_SHARED, infd, 0);
+
+        int outfd = PosixIO::Open(outfname.c_str(), O_RDWR | O_CREAT,
+                                  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+        PosixIO::Ftruncate(outfd, static_cast<off_t>(len));
+        void* outaddr = PosixIO::Mmap(nullptr, len, PROT_READ | PROT_WRITE,
+                                      MAP_SHARED, outfd, 0);
+
+        std::memcpy(outaddr, inaddr, len);
+        PosixIO::Msync(outaddr, len, MS_SYNC);
+
+        PosixIO::Munmap(inaddr, len);
+        PosixIO::Close(infd);
+
+        PosixIO::Munmap(outaddr, len);
+        PosixIO::Close(outfd);
+      }
+    }
+  }
+
+#if MICA_CCC != MICA_CCC_NONE
+  {
+    MICADB* mica_replica = m_wl->mica_replica;
+    MICALogger* logger = m_wl->mica_logger;
+    logger->disable();
+    MICACCC* ccc = m_wl->mica_ccc;
+
+    printf("Preprocessing logs\n");
+    ccc->preprocess_logs();
+
+    printf("Starting cloned concurrency control\n");
+    mica_replica->reset_stats();
+    mica_replica->reset_backoff();
+
+    ccc->start_workers();
+    int64_t starttime = get_server_clock();
+    ccc->stop_workers();
+    int64_t endtime = get_server_clock();
+
+    printf("Printing replica stats\n");
+
+    double t = (double)(endtime - starttime) / 1000000000.;
+    mica_replica->print_stats(t, t * thd_cnt);
+
+    for (const auto& tbl : mica_replica->get_all_tables()) {
+      printf("table %s :\n", tbl.first.c_str());
+      tbl.second->print_table_status();
+    }
+
+    mica_replica->print_pool_status();
+
+    m_wl->mica_page_pools[0]->print_status();
+    m_wl->mica_page_pools[1]->print_status();
+
+    ::mica::util::Latency inter_commit_latency;
+    for (uint32_t i = 0; i < thd_cnt; i++)
+      inter_commit_latency += mica_replica->context(static_cast<uint16_t>(i))
+        ->inter_commit_latency();
+
+    fprintf(stderr, "mem_allocator stats after replication:\n");
+    mem_allocator.dump_stats();
+
+#if PRINT_LAT_DIST
+    printf("LatencyStart\n");
+    inter_commit_latency.print(stdout);
+    printf("LatencyEnd\n");
+#endif
+  }
+#endif
+#endif
+
   return 0;
 }
 

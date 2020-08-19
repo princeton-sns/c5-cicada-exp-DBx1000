@@ -7,6 +7,7 @@ class workload;
 class ycsb_query;
 class tpcc_query;
 class tatp_query;
+class insert_query;
 
 class base_query {
 public:
@@ -32,6 +33,8 @@ public:
 	tpcc_query * queries;
 #elif WORKLOAD == TATP
 	tatp_query * queries;
+#elif WORKLOAD == INSERT
+	insert_query * queries;
 #endif
 	char pad[CL_SIZE - sizeof(void *) - sizeof(int)];
 	drand48_data buffer;

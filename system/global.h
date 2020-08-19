@@ -32,6 +32,9 @@
 #if CC_ALG == MICA
 #define NDEBUG
 #include "mica/transaction/db.h"
+#include "mica/transaction/logging_impl/copycat.h"
+#include "mica/transaction/logging_impl/mmap_logger.h"
+#include "mica/util/posix_io.h"
 #undef NDEBUG
 struct DBConfig : public ::mica::transaction::BasicDBConfig {
   // static constexpr bool kVerbose = true;
@@ -85,10 +88,25 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
   // static constexpr bool kCollectROTXStalenessStats = true;
   // typedef ::mica::transaction::ActiveTiming Timing;
 
+  // Logging and replication
+  static constexpr uint64_t kPageSize = 2 * 1048576;
+
+#if MICA_LOGGER == MICA_LOG_NULL
   typedef ::mica::transaction::NullLogger<DBConfig> Logger;
+#elif MICA_LOGGER == MICA_LOG_MMAP
+  typedef ::mica::transaction::MmapLogger<DBConfig> Logger;
+#endif
+
+#if MICA_CCC == MICA_CCC_COPYCAT
+  typedef ::mica::transaction::CopyCat<DBConfig> CCC;
+#endif
 };
+
 typedef DBConfig::Alloc MICAAlloc;
 typedef DBConfig::Logger MICALogger;
+#if MICA_CCC != MICA_CCC_NONE
+typedef DBConfig::CCC MICACCC;
+#endif
 typedef DBConfig::Timing MICATiming;
 typedef ::mica::transaction::PagePool<DBConfig> MICAPagePool;
 typedef ::mica::transaction::DB<DBConfig> MICADB;
@@ -195,6 +213,9 @@ extern uint64_t g_max_orderline;
 
 // TATP
 extern uint64_t g_sub_size;
+
+// INSERT
+extern uint64_t g_inserts_per_txn;
 
 enum RC { RCOK, Commit, Abort, WAIT, ERROR, FINISH};
 

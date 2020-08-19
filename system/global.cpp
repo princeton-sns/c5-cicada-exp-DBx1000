@@ -77,3 +77,5 @@ uint64_t g_max_orderline = uint64_t(1) << 32;
 
 uint64_t g_sub_size = TATP_SUB_SIZE;
 
+// Insert
+uint64_t g_inserts_per_txn = INSERT_INSERTS_PER_TXN;

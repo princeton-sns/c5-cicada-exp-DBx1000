@@ -100,6 +100,8 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
 #if MICA_CCC == MICA_CCC_COPYCAT
   typedef ::mica::transaction::CopyCat<DBConfig> CCC;
 #endif
+
+  static constexpr bool kReplUseUpsert = MICA_REPL_USE_UPSERT;
 };
 
 typedef DBConfig::Alloc MICAAlloc;
@@ -215,7 +217,11 @@ extern uint64_t g_max_orderline;
 extern uint64_t g_sub_size;
 
 // INSERT
-extern uint64_t g_inserts_per_txn;
+extern uint64_t g_insert_inserts_per_txn;
+// UPDATE
+extern uint64_t g_update_updates_per_txn;
+// ADVERSARIAL
+extern uint64_t g_adversarial_inserts_per_txn;
 
 enum RC { RCOK, Commit, Abort, WAIT, ERROR, FINISH};
 

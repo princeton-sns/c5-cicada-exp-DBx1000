@@ -33,14 +33,14 @@ void workload::init_mica() {
 #if MICA_LOGGER == MICA_LOG_NULL
   mica_logger = new MICALogger();
 #elif MICA_LOGGER == MICA_LOG_MMAP
-  mica_logger = new MICALogger(g_thread_cnt);
+  mica_logger = new MICALogger(g_thread_cnt, std::string{MICA_LOG_INIT_DIR});
 #endif
   mica_db = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
 #if MICA_REPL_ENABLED
   mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
 #endif
 #if MICA_CCC == MICA_CCC_COPYCAT
-  mica_ccc = new MICACCC(mica_replica, g_thread_cnt, g_thread_cnt);
+  mica_ccc = new MICACCC(mica_replica, g_thread_cnt, g_thread_cnt, std::string{MICA_RELAY_INIT_DIR});
 #endif
   printf("MICA initialized\n");
 #endif
@@ -179,6 +179,10 @@ RC workload::init_schema(string schema_file) {
         table_size = stoi(items[1]) * g_num_wh;
 #elif WORKLOAD == TATP
       table_size = stoi(items[1]) * TATP_SCALE_FACTOR;
+#elif WORKLOAD == UPDATE
+      table_size = g_synth_table_size;
+#elif WORKLOAD == ADVERSARIAL
+      table_size = g_thread_cnt * g_adversarial_inserts_per_txn * MAX_TXN_PER_PART;
 #endif
 
       if (strncmp(iname.c_str(), "ORDERED_", 8) == 0) {

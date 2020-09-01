@@ -105,10 +105,16 @@
 // Logging
 /***********************************************/
 #define MICA_LOGGER MICA_LOG_NULL
-#define MICA_LOG_DIR "/mnt/huge/cicada/db"
-#define MICA_RELAY_DIR "/mnt/huge/cicada/relay"
+#define MICA_LOG_INIT_DIR "/mnt/huge/cicada/log/init"
+#define MICA_LOG_WARMUP_DIR "/mnt/huge/cicada/log/warmup"
+#define MICA_LOG_WORKLOAD_DIR "/mnt/huge/cicada/log/workload"
+#define MICA_RELAY_INIT_DIR "/mnt/huge/cicada/relay/init"
+#define MICA_RELAY_WARMUP_DIR "/mnt/huge/cicada/relay/warmup"
+#define MICA_RELAY_WORKLOAD_DIR "/mnt/huge/cicada/relay/workload"
 #define MICA_REPL_ENABLED false
 #define MICA_CCC MICA_CCC_NONE
+
+#define MICA_REPL_USE_UPSERT false
 
 // LOG_BATCH_TIME doesn't seem to do anything
 #define LOG_BATCH_TIME				10 // in ms
@@ -192,6 +198,12 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 // ==== [INSERT] ====
 #define INSERT_INSERTS_PER_TXN 1
 
+// ==== [UPDATE] ====
+#define UPDATE_UPDATES_PER_TXN 1
+
+// ==== [ADVERSARIAL] ====
+#define ADVERSARIAL_INSERTS_PER_TXN 1
+
 /***********************************************/
 // TODO centralized CC management.
 /***********************************************/
@@ -237,6 +249,8 @@ extern TestCases					g_test_case;
 #define TATP						3
 #define TEST						4
 #define INSERT					5
+#define UPDATE					6
+#define ADVERSARIAL			7
 // Concurrency Control Algorithm
 #define NO_WAIT						1
 #define WAIT_DIE					2

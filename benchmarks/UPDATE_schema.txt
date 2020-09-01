@@ -1,0 +1,6 @@
+//size, type, name
+TABLE=MAIN_TABLE
+	8,int64_t,VALUE
+
+INDEX=HASH_MAIN_INDEX
+MAIN_TABLE,0

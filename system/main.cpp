@@ -4,6 +4,8 @@
 #include "tatp.h"
 #include "test.h"
 #include "insert.h"
+#include "update.h"
+#include "adversarial.h"
 #include "thread.h"
 #include "manager.h"
 #include "mem_alloc.h"
@@ -16,8 +18,6 @@
 #include "index_mica.h"
 #endif
 #include <thread>
-
-using mica::util::PosixIO;
 
 void* f(void*);
 
@@ -47,6 +47,12 @@ int main(int argc, char* argv[]) {
       break;
     case INSERT:
       m_wl = new insert_wl;
+      break;
+    case UPDATE:
+      m_wl = new update_wl;
+      break;
+    case ADVERSARIAL:
+      m_wl = new adversarial_wl;
       break;
     default:
       assert(false);
@@ -185,10 +191,12 @@ int main(int argc, char* argv[]) {
 #if CC_ALG == MICA
   m_wl->mica_db->reset_stats();
   m_wl->mica_db->reset_backoff();
+  m_wl->mica_logger->change_logdir(std::string{MICA_LOG_WARMUP_DIR});
 #endif
 
   if (WARMUP > 0) {
     printf("WARMUP start!\n");
+
     // for (uint32_t i = 0; i < thd_cnt - 1; i++) {
     // 	uint64_t vid = i;
     // 	pthread_create(&p_thds[i], NULL, f, (void *)vid);
@@ -218,6 +226,7 @@ int main(int argc, char* argv[]) {
 
 #if CC_ALG == MICA
   m_wl->mica_db->reset_stats();
+  m_wl->mica_logger->change_logdir(std::string{MICA_LOG_WORKLOAD_DIR});
 #else
   for (uint32_t i = 0; i < thd_cnt; i++)
     m_thds[i]->inter_commit_latency.reset();
@@ -314,59 +323,50 @@ int main(int argc, char* argv[]) {
     MICALogger* logger = m_wl->mica_logger;
     logger->flush();
 
-    std::size_t len = DBConfig::kPageSize;
-    for (uint32_t thread_id = 0; thread_id < g_thread_cnt; thread_id++) {
-      for (uint64_t file_index = 0;; file_index++) {
-        std::string infname = std::string{MICA_LOG_DIR} + "/out." +
-                              std::to_string(thread_id) + "." +
-                              std::to_string(file_index) + ".log";
-
-        std::string outfname = std::string{MICA_RELAY_DIR} + "/out." +
-                               std::to_string(thread_id) + "." +
-                               std::to_string(file_index) + ".log";
-
-        if (!PosixIO::Exists(infname.c_str())) break;
-
-        int infd = PosixIO::Open(infname.c_str(), O_RDONLY);
-        void* inaddr =
-            PosixIO::Mmap(nullptr, len, PROT_READ, MAP_SHARED, infd, 0);
-
-        int outfd = PosixIO::Open(outfname.c_str(), O_RDWR | O_CREAT,
-                                  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-        PosixIO::Ftruncate(outfd, static_cast<off_t>(len));
-        void* outaddr = PosixIO::Mmap(nullptr, len, PROT_READ | PROT_WRITE,
-                                      MAP_SHARED, outfd, 0);
-
-        std::memcpy(outaddr, inaddr, len);
-        PosixIO::Msync(outaddr, len, MS_SYNC);
-
-        PosixIO::Munmap(inaddr, len);
-        PosixIO::Close(infd);
-
-        PosixIO::Munmap(outaddr, len);
-        PosixIO::Close(outfd);
-      }
-    }
+    logger->copy_logs(std::string{MICA_LOG_INIT_DIR},
+                      std::string{MICA_RELAY_INIT_DIR});
+    logger->copy_logs(std::string{MICA_LOG_WARMUP_DIR},
+                      std::string{MICA_RELAY_WARMUP_DIR});
+    logger->copy_logs(std::string{MICA_LOG_WORKLOAD_DIR},
+                      std::string{MICA_RELAY_WORKLOAD_DIR});
   }
 
 #if MICA_CCC != MICA_CCC_NONE
   {
+    m_wl->mica_logger->disable();
+
     MICADB* mica_replica = m_wl->mica_replica;
-    MICALogger* logger = m_wl->mica_logger;
-    logger->disable();
     MICACCC* ccc = m_wl->mica_ccc;
 
+    printf("Starting cloned concurrency control INIT\n");
     printf("Preprocessing logs\n");
     ccc->preprocess_logs();
-
-    printf("Starting cloned concurrency control\n");
-    mica_replica->reset_stats();
-    mica_replica->reset_backoff();
-
     ccc->start_workers();
     int64_t starttime = get_server_clock();
     ccc->stop_workers();
     int64_t endtime = get_server_clock();
+
+    if (WARMUP > 0) {
+      printf("Starting cloned concurrency control WARMUP\n");
+      ccc->set_logdir(std::string{MICA_RELAY_WARMUP_DIR});
+      mica_replica->reset_stats();
+      mica_replica->reset_backoff();
+
+      ccc->start_workers();
+      starttime = get_server_clock();
+      ccc->stop_workers();
+      endtime = get_server_clock();
+    }
+
+    printf("Starting cloned concurrency control WORKLOAD\n");
+    ccc->set_logdir(std::string{MICA_RELAY_WORKLOAD_DIR});
+    mica_replica->reset_stats();
+    mica_replica->reset_backoff();
+
+    ccc->start_workers();
+    starttime = get_server_clock();
+    ccc->stop_workers();
+    endtime = get_server_clock();
 
     printf("Printing replica stats\n");
 

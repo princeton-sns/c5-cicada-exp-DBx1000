@@ -28,7 +28,7 @@ RC insert_txn_man::run_txn(base_query* query) {
     auto part_id = 0;
     if (!insert_row(_wl->the_table, row, part_id, row_id)) return finish(Abort);
     row->set_primary_key(key);
-    row->set_value(VALUE, val);
+    row->set_value(static_cast<int>(InsertMainTable::VALUE), val);
 
     // TODO: Add option for index
     // if (!insert_idx(_wl->the_index, key, row, part_id)) return finish(Abort);

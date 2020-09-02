@@ -102,6 +102,7 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
 #endif
 
   static constexpr bool kReplUseUpsert = MICA_REPL_USE_UPSERT;
+  static constexpr bool kUpsertAssumeNewRow = MICA_REPL_UPSERT_ASSUME_NEW;
 };
 
 typedef DBConfig::Alloc MICAAlloc;

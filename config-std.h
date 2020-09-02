@@ -115,6 +115,7 @@
 #define MICA_CCC MICA_CCC_NONE
 
 #define MICA_REPL_USE_UPSERT false
+#define MICA_REPL_UPSERT_ASSUME_NEW false
 
 // LOG_BATCH_TIME doesn't seem to do anything
 #define LOG_BATCH_TIME				10 // in ms

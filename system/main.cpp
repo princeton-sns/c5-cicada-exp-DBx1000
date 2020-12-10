@@ -284,6 +284,20 @@ int main(int argc, char* argv[]) {
     }
   }
 
+#if INDEX_STRUCT == IDX_MICA
+  for (auto it : m_wl->hash_indexes) {
+    auto index = it.second;
+    uint64_t part_id = 0;
+    for (auto idx : index->mica_idx) {
+      auto mica_tbl = idx->index_table();
+      printf("hash_index %2" PRIu64 ": index %s part %2" PRIu64 ":\n",
+             thread_id, it.first.c_str(), part_id);
+      mica_tbl->print_table_status();
+      part_id++;
+    }
+  }
+#endif
+
   m_wl->mica_db->print_pool_status();
 
   m_wl->mica_page_pools[0]->print_status();
@@ -319,6 +333,10 @@ int main(int argc, char* argv[]) {
 
 #if MICA_REPL_ENABLED
   {
+    printf("Deleting mica_db\n");
+    delete m_wl->mica_db;
+  }
+  {
     printf("Copying DB log files to relay dir\n");
     MICALogger* logger = m_wl->mica_logger;
     logger->flush();
@@ -333,63 +351,78 @@ int main(int argc, char* argv[]) {
 
 #if MICA_CCC != MICA_CCC_NONE
   {
-    m_wl->mica_logger->disable();
-
     MICADB* mica_replica = m_wl->mica_replica;
     MICACCC* ccc = m_wl->mica_ccc;
 
-    printf("Starting cloned concurrency control INIT\n");
-    printf("Preprocessing logs\n");
-    ccc->preprocess_logs();
-    ccc->start_workers();
-    int64_t starttime = get_server_clock();
-    ccc->stop_workers();
-    int64_t endtime = get_server_clock();
+    std::vector<std::string> relaydirs = {std::string{MICA_RELAY_INIT_DIR},
+      std::string{MICA_RELAY_WARMUP_DIR},
+      std::string{MICA_RELAY_WORKLOAD_DIR}};
 
-    if (WARMUP > 0) {
-      printf("Starting cloned concurrency control WARMUP\n");
-      ccc->set_logdir(std::string{MICA_RELAY_WARMUP_DIR});
+    for (std::string dir : relaydirs) {
+      ccc->set_logdir(dir);
+      printf("Preprocessing logs in %s\n", dir.c_str());
+      ccc->preprocess_logs();
+    }
+
+    int i = 0;
+    for (std::string dir : relaydirs) {
+      switch (i) {
+        case 0:
+          printf("Starting cloned concurrency control INIT\n");
+          break;
+        case 1:
+          printf("Starting cloned concurrency control WARMUP\n");
+          break;
+        case 2:
+          printf("Starting cloned concurrency control WORKLOAD\n");
+          break;
+        default:
+          throw std::runtime_error("Unexpected relay dir.");
+      }
+
+      ccc->set_logdir(dir);
+
       mica_replica->reset_stats();
       mica_replica->reset_backoff();
 
+      ccc->start_snapshot_manager();
       ccc->start_workers();
-      starttime = get_server_clock();
+      ccc->start_schedulers();
+      ccc->start_ios();
+      int64_t starttime = get_server_clock();
+      ccc->stop_ios();
+      ccc->stop_schedulers();
       ccc->stop_workers();
-      endtime = get_server_clock();
+      int64_t endtime = get_server_clock();
+      // Don't count snapshot manager time in throughput measurements
+      ccc->stop_snapshot_manager();
+      ccc->reset();
+
+      printf("Printing replica stats\n");
+
+      double t = (double)(endtime - starttime) / 1000000000.;
+      mica_replica->print_stats(t, t * g_worker_cnt);
+
+      for (const auto& item : mica_replica->get_tables_index()) {
+        printf("table %s :\n", item.first.c_str());
+        mica_replica->get_table_by_index(item.second)->print_table_status();
+      }
+
+      mica_replica->print_pool_status();
+
+      m_wl->mica_page_pools[0]->print_status();
+      m_wl->mica_page_pools[1]->print_status();
+
+      ::mica::util::Latency inter_commit_latency;
+      for (uint32_t i = 0; i < g_worker_cnt; i++)
+        inter_commit_latency += mica_replica->context(static_cast<uint16_t>(i))
+          ->inter_commit_latency();
+
+      fprintf(stderr, "mem_allocator stats after replication:\n");
+      mem_allocator.dump_stats();
+
+      i++;
     }
-
-    printf("Starting cloned concurrency control WORKLOAD\n");
-    ccc->set_logdir(std::string{MICA_RELAY_WORKLOAD_DIR});
-    mica_replica->reset_stats();
-    mica_replica->reset_backoff();
-
-    ccc->start_workers();
-    starttime = get_server_clock();
-    ccc->stop_workers();
-    endtime = get_server_clock();
-
-    printf("Printing replica stats\n");
-
-    double t = (double)(endtime - starttime) / 1000000000.;
-    mica_replica->print_stats(t, t * thd_cnt);
-
-    for (const auto& tbl : mica_replica->get_all_tables()) {
-      printf("table %s :\n", tbl.first.c_str());
-      tbl.second->print_table_status();
-    }
-
-    mica_replica->print_pool_status();
-
-    m_wl->mica_page_pools[0]->print_status();
-    m_wl->mica_page_pools[1]->print_status();
-
-    ::mica::util::Latency inter_commit_latency;
-    for (uint32_t i = 0; i < thd_cnt; i++)
-      inter_commit_latency += mica_replica->context(static_cast<uint16_t>(i))
-        ->inter_commit_latency();
-
-    fprintf(stderr, "mem_allocator stats after replication:\n");
-    mem_allocator.dump_stats();
 
 #if PRINT_LAT_DIST
     printf("LatencyStart\n");

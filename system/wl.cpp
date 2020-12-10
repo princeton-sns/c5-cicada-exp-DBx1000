@@ -37,10 +37,14 @@ void workload::init_mica() {
 #endif
   mica_db = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
 #if MICA_REPL_ENABLED
-  mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
+  mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_worker_cnt + g_io_cnt, true);
 #endif
 #if MICA_CCC == MICA_CCC_COPYCAT
-  mica_ccc = new MICACCC(mica_replica, g_thread_cnt, g_thread_cnt, std::string{MICA_RELAY_INIT_DIR});
+  auto sched_pool_size = MICA_SCHED_POOL_SIZE * uint64_t(1073741824);  // in GiB
+  mica_sched_pool = new MICASchedPool(mica_alloc, sched_pool_size, lcore0); // TODO: always use lcore0?
+  mica_ccc = new MICACCC(mica_replica, mica_sched_pool,
+                         g_thread_cnt, g_io_cnt, g_scheduler_cnt, g_worker_cnt,
+                         std::string{MICA_RELAY_INIT_DIR});
 #endif
   printf("MICA initialized\n");
 #endif

@@ -39,6 +39,7 @@ public:
 	MICADB* mica_replica;
 #endif
 #if MICA_CCC == MICA_CCC_COPYCAT
+  MICASchedPool* mica_sched_pool;
   MICACCC* mica_ccc;
 #endif
 #endif

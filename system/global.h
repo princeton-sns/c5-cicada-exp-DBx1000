@@ -32,7 +32,7 @@
 #if CC_ALG == MICA
 #define NDEBUG
 #include "mica/transaction/db.h"
-#include "mica/transaction/logging_impl/copycat.h"
+#include "mica/transaction/replication_impl/copycat.h"
 #include "mica/transaction/logging_impl/mmap_logger.h"
 #include "mica/util/posix_io.h"
 #undef NDEBUG
@@ -109,6 +109,7 @@ typedef DBConfig::Alloc MICAAlloc;
 typedef DBConfig::Logger MICALogger;
 #if MICA_CCC != MICA_CCC_NONE
 typedef DBConfig::CCC MICACCC;
+typedef ::mica::transaction::SchedulerPool<DBConfig> MICASchedPool;
 #endif
 typedef DBConfig::Timing MICATiming;
 typedef ::mica::transaction::PagePool<DBConfig> MICAPagePool;
@@ -180,6 +181,9 @@ extern bool g_prt_lat_distr;
 extern UInt32 g_part_cnt;
 extern UInt32 g_virtual_part_cnt;
 extern UInt32 g_thread_cnt;
+extern UInt32 g_io_cnt;
+extern UInt32 g_scheduler_cnt;
+extern UInt32 g_worker_cnt;
 extern ts_t g_abort_penalty;
 extern bool g_central_man;
 extern UInt32 g_ts_alloc;

@@ -37,7 +37,8 @@ void workload::init_mica() {
 #endif
   mica_db = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
 #if MICA_REPL_ENABLED
-  mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_worker_cnt + g_io_cnt, true);
+  uint16_t num_threads = (uint16_t)std::max((std::size_t)g_worker_cnt, lcore1) + g_io_cnt;
+  mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, num_threads, true);
 #endif
 #if MICA_CCC == MICA_CCC_COPYCAT
   auto sched_pool_size = MICA_SCHED_POOL_SIZE * uint64_t(1073741824);  // in GiB

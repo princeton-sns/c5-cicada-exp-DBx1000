@@ -38,8 +38,7 @@ public:
 #if MICA_REPL_ENABLED
 	MICADB* mica_replica;
 #endif
-#if MICA_CCC == MICA_CCC_COPYCAT
-  MICASchedPool* mica_sched_pool;
+#if MICA_CCC != MICA_CCC_NONE
   MICACCC* mica_ccc;
 #endif
 #endif

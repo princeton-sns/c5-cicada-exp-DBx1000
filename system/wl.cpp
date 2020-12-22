@@ -40,10 +40,9 @@ void workload::init_mica() {
   uint16_t num_threads = (uint16_t)std::max((std::size_t)g_worker_cnt, lcore1) + g_io_cnt;
   mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, num_threads, true);
 #endif
-#if MICA_CCC == MICA_CCC_COPYCAT
-  auto sched_pool_size = MICA_SCHED_POOL_SIZE * uint64_t(1073741824);  // in GiB
-  mica_sched_pool = new MICASchedPool(mica_alloc, sched_pool_size, lcore0); // TODO: always use lcore0?
-  mica_ccc = new MICACCC(mica_replica, mica_sched_pool,
+#if MICA_CCC != MICA_CCC_NONE
+  uint64_t sched_pool_size = MICA_SCHED_POOL_SIZE * uint64_t(1073741824);  // in GiB
+  mica_ccc = new MICACCC(mica_replica, mica_alloc, sched_pool_size, lcore1, // TODO: always use lcore1?
                          g_thread_cnt, g_io_cnt, g_scheduler_cnt, g_worker_cnt,
                          std::string{MICA_RELAY_INIT_DIR});
 #endif

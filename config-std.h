@@ -281,6 +281,7 @@ extern TestCases					g_test_case;
 // MICA CCC
 #define MICA_CCC_NONE 1
 #define MICA_CCC_COPYCAT 2
+#define MICA_CCC_KUAFU 3
 // TIMESTAMP allocation method.
 #define TS_MUTEX					1
 #define TS_CAS						2

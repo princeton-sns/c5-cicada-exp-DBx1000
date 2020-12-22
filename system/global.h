@@ -32,8 +32,8 @@
 #if CC_ALG == MICA
 #define NDEBUG
 #include "mica/transaction/db.h"
-#include "mica/transaction/replication_impl/copycat.h"
-#include "mica/transaction/logging_impl/mmap_logger.h"
+#include "mica/transaction/logging.h"
+#include "mica/transaction/replication.h"
 #include "mica/util/posix_io.h"
 #undef NDEBUG
 struct DBConfig : public ::mica::transaction::BasicDBConfig {
@@ -99,6 +99,8 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
 
 #if MICA_CCC == MICA_CCC_COPYCAT
   typedef ::mica::transaction::CopyCat<DBConfig> CCC;
+#elif MICA_CCC == MICA_CCC_KUAFU
+  typedef ::mica::transaction::KuaFu<DBConfig> CCC;
 #endif
 
   static constexpr bool kReplUseUpsert = MICA_REPL_USE_UPSERT;
@@ -109,7 +111,6 @@ typedef DBConfig::Alloc MICAAlloc;
 typedef DBConfig::Logger MICALogger;
 #if MICA_CCC != MICA_CCC_NONE
 typedef DBConfig::CCC MICACCC;
-typedef ::mica::transaction::SchedulerPool<DBConfig> MICASchedPool;
 #endif
 typedef DBConfig::Timing MICATiming;
 typedef ::mica::transaction::PagePool<DBConfig> MICAPagePool;

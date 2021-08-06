@@ -40,7 +40,7 @@
 #define RCU_ALLOC_SIZE     (20 * 1073741824UL)	// 20 GB
 
 // MICA Page pool size (in GiB)
-#define MICA_PAGE_POOL_SIZE                             32
+#define MICA_PAGE_POOL_SIZE                             16
 
 // MICA Scheduler pool size (in GiB)
 #define MICA_SCHED_POOL_SIZE                            4

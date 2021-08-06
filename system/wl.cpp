@@ -37,7 +37,7 @@ void workload::init_mica() {
 #endif
   mica_db = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
 #if MICA_REPL_ENABLED
-  uint16_t num_threads = (uint16_t)std::max((std::size_t)g_worker_cnt, lcore1) + g_io_cnt;
+  uint16_t num_threads = (uint16_t)std::max((std::size_t)g_io_cnt, lcore1) + g_worker_cnt + 1;
   mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, num_threads, true);
 #endif
 #if MICA_CCC != MICA_CCC_NONE

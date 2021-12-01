@@ -90,7 +90,7 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
 
   // Logging and replication
   static constexpr uint64_t kPageSize = 2 * 1048576;
-  static constexpr uint64_t kLogSegmentSize = kPageSize/4;
+  static constexpr uint64_t kLogSegmentsPerPage = 4;
   static constexpr uint64_t kLogFileSize = 4 * kPageSize;
 
 #if MICA_LOGGER == MICA_LOG_NULL

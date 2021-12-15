@@ -337,6 +337,7 @@ int main(int argc, char* argv[]) {
     m_wl->mica_logger->flush();
     printf("Deleting mica_db\n");
     delete m_wl->mica_db;
+    delete m_wl->mica_logger;
   }
 
 #if MICA_CCC != MICA_CCC_NONE

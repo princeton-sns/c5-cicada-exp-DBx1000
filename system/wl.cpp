@@ -33,7 +33,7 @@ void workload::init_mica() {
 #if MICA_LOGGER == MICA_LOG_NULL
   mica_logger = new MICALogger();
 #elif MICA_LOGGER == MICA_LOG_MMAP
-  mica_logger = new MICALogger(g_thread_cnt, std::string{MICA_LOG_INIT_DIR});
+  mica_logger = new MICALogger(std::string{MICA_LOG_INIT_DIR}, g_thread_cnt);
 #endif
   mica_db = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
 #if MICA_REPL_ENABLED
@@ -41,8 +41,7 @@ void workload::init_mica() {
   mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, num_threads, true);
 #endif
 #if MICA_CCC != MICA_CCC_NONE
-  mica_ccc = new MICACCC(mica_replica, g_thread_cnt, g_worker_cnt,
-                         std::string{MICA_RELAY_INIT_DIR});
+  mica_ccc = new MICACCC(mica_replica, g_thread_cnt, g_worker_cnt);
 #endif
   printf("MICA initialized\n");
 #endif

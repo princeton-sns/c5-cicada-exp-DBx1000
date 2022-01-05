@@ -163,7 +163,7 @@ int main(int argc, char* argv[]) {
 #endif
 
   uint64_t thd_cnt = g_thread_cnt;
-  pthread_t p_thds[thd_cnt - 1];
+  pthread_t p_thds[thd_cnt];
   m_thds = new thread_t*[thd_cnt];
   for (uint32_t i = 0; i < thd_cnt; i++)
     m_thds[i] = (thread_t*)mem_allocator.alloc(sizeof(thread_t), 0);
@@ -172,6 +172,7 @@ int main(int argc, char* argv[]) {
   query_queue = (Query_queue*)mem_allocator.alloc(sizeof(Query_queue), 0);
   if (WORKLOAD != TEST) query_queue->init(m_wl);
   pthread_barrier_init(&warmup_bar, NULL, g_thread_cnt);
+  pthread_barrier_init(&start_bar, NULL, g_thread_cnt + 1);
   printf("query_queue initialized!\n");
 #if CC_ALG == HSTORE
   part_lock_man.init();
@@ -184,7 +185,6 @@ int main(int argc, char* argv[]) {
   fprintf(stderr, "mem_allocator stats after workload init:\n");
   mem_allocator.dump_stats();
 
-  pthread_barrier_init(&start_bar, NULL, g_thread_cnt + 1);
 
   for (uint32_t i = 0; i < thd_cnt; i++) m_thds[i]->init(i, m_wl);
 
@@ -213,13 +213,9 @@ int main(int argc, char* argv[]) {
     printf("WARMUP finished!\n");
   }
   warmup_finish = true;
-  pthread_barrier_init(&warmup_bar, NULL, g_thread_cnt);
 #ifndef NOGRAPHITE
   CarbonBarrierInit(&enable_barrier, g_thread_cnt);
 #endif
-  pthread_barrier_init(&warmup_bar, NULL, g_thread_cnt);
-
-  pthread_barrier_init(&start_bar, NULL, g_thread_cnt + 1);
 
   fprintf(stderr, "mem_allocator stats after warmup:\n");
   mem_allocator.dump_stats();

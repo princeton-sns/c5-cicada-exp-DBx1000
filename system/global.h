@@ -96,7 +96,7 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
 #if MICA_LOGGER == MICA_LOG_NULL
   typedef ::mica::transaction::NullLogger<DBConfig> Logger;
 #elif MICA_LOGGER == MICA_LOG_MMAP
-  typedef ::mica::transaction::MmapLogger<DBConfig> Logger;
+  typedef ::mica::transaction::MmapLogger2<DBConfig> Logger;
 #endif
 
 #if MICA_CCC == MICA_CCC_COPYCAT

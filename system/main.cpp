@@ -329,6 +329,7 @@ int main(int argc, char* argv[]) {
 
 #if MICA_REPL_ENABLED
   {
+    inter_commit_latency.reset();
     printf("Flushing logs\n");
     m_wl->mica_logger->flush();
     printf("Deleting mica_db\n");
@@ -403,7 +404,6 @@ int main(int argc, char* argv[]) {
       m_wl->mica_page_pools[0]->print_status();
       m_wl->mica_page_pools[1]->print_status();
 
-      ::mica::util::Latency inter_commit_latency;
       for (uint32_t i = 0; i < g_worker_cnt; i++)
         inter_commit_latency += mica_replica->context(static_cast<uint16_t>(i))
           ->inter_commit_latency();

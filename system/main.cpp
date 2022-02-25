@@ -280,20 +280,6 @@ int main(int argc, char* argv[]) {
     }
   }
 
-#if INDEX_STRUCT == IDX_MICA
-  for (auto it : m_wl->hash_indexes) {
-    auto index = it.second;
-    uint64_t part_id = 0;
-    for (auto idx : index->mica_idx) {
-      auto mica_tbl = idx->index_table();
-      printf("hash_index %2" PRIu64 ": index %s part %2" PRIu64 ":\n",
-             thread_id, it.first.c_str(), part_id);
-      mica_tbl->print_table_status();
-      part_id++;
-    }
-  }
-#endif
-
   m_wl->mica_db->print_pool_status();
 
   m_wl->mica_page_pools[0]->print_status();

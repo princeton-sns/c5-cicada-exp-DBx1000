@@ -82,7 +82,7 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
   ConcurrentTimestamp;
 #endif
 
-  static constexpr bool kCollectCommitStats = false;
+  static constexpr bool kCollectCommitStats = true;
   // static constexpr bool kCollectExtraCommitStats = true;
   // static constexpr bool kCollectProcessingStats = true;
   // static constexpr bool kCollectROTXStalenessStats = true;
@@ -90,7 +90,7 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
 
   // Logging and replication
   static constexpr uint64_t kPageSize = 2 * 1048576;
-  static constexpr uint64_t kLogSegmentsPerPage = 4;
+  static constexpr uint64_t kLogSegmentsPerPage = 1;
   static constexpr uint64_t kLogFileSize = 4 * kPageSize;
 
 #if MICA_LOGGER == MICA_LOG_NULL

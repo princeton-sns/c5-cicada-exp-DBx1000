@@ -407,8 +407,6 @@ int main(int argc, char* argv[]) {
 
             fprintf(stderr, "mem_allocator stats after replication:\n");
             mem_allocator.dump_stats();
-
-            i++;
         }
 
 #if PRINT_LAT_DIST

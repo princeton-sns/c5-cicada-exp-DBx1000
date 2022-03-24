@@ -93,10 +93,10 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
   static constexpr uint64_t kLogSegmentsPerPage = 1;
   static constexpr uint64_t kLogFileSize = 4 * kPageSize;
 
-#if MICA_LOGGER == MICA_LOG_NULL
-  typedef ::mica::transaction::NullLogger<DBConfig> Logger;
-#elif MICA_LOGGER == MICA_LOG_MMAP
+#if MICA_LOGGER == MICA_LOG_MMAP
   typedef ::mica::transaction::MmapLogger2<DBConfig> Logger;
+#else
+  typedef ::mica::transaction::NullLogger<DBConfig> Logger;
 #endif
 
 #if MICA_CCC == MICA_CCC_COPYCAT

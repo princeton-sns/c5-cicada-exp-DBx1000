@@ -204,27 +204,27 @@ bool tpcc_txn_man::payment_updateCustomer(row_t* row, uint64_t c_id,
   row->get_value(C_PAYMENT_CNT, c_payment_cnt);
   row->set_value(C_PAYMENT_CNT, c_payment_cnt + 1);
 
-#if TPCC_FULL
-  const char* c_credit = row->get_value(C_CREDIT);
-  if (strstr(c_credit, "BC")) {
-    char c_new_data[501];
-    sprintf(c_new_data, "%4d %2d %4d %2d %4d $%7.2f | ", (int)c_id, (int)c_d_id,
-            (int)c_w_id, (int)d_id, (int)w_id, h_amount);
-
-#if TPCC_CF
-    auto index = _wl->i_customer_id;
-    auto key = custKey(c_id, d_id, w_id);
-    auto part_id = wh_to_part(w_id);
-    const access_t cf_access_type[] = {SKIP, SKIP, WR};
-    auto row = search(index, key, part_id, SKIP, cf_access_type);
-    if (row == NULL) return false;
-#endif
-
-    const char* c_data = row->get_value(C_DATA);
-    strncat(c_new_data, c_data, 500 - strlen(c_new_data));
-    row->set_value(C_DATA, c_new_data);
-  }
-#endif
+//#if TPCC_FULL
+//  const char* c_credit = row->get_value(C_CREDIT);
+//  if (strstr(c_credit, "BC")) {
+//    char c_new_data[501];
+//    sprintf(c_new_data, "%4d %2d %4d %2d %4d $%7.2f | ", (int)c_id, (int)c_d_id,
+//            (int)c_w_id, (int)d_id, (int)w_id, h_amount);
+//
+//#if TPCC_CF
+//    auto index = _wl->i_customer_id;
+//    auto key = custKey(c_id, d_id, w_id);
+//    auto part_id = wh_to_part(w_id);
+//    const access_t cf_access_type[] = {SKIP, SKIP, WR};
+//    auto row = search(index, key, part_id, SKIP, cf_access_type);
+//    if (row == NULL) return false;
+//#endif
+//
+//    const char* c_data = row->get_value(C_DATA);
+//    strncat(c_new_data, c_data, 500 - strlen(c_new_data));
+//    row->set_value(C_DATA, c_new_data);
+//  }
+//#endif
   return true;
 }
 

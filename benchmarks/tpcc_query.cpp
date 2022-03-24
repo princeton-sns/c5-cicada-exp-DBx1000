@@ -18,16 +18,20 @@ void tpcc_query::init(uint64_t thd_id, workload* h_wl) {
   else
     gen_new_order(thd_id);
 #else
-  if (x < 0.04)
-    gen_stock_level(thd_id);
-  else if (x < 0.04 + 0.04)
-    gen_delivery(thd_id);
-  else if (x < 0.04 + 0.04 + 0.04)
-    gen_order_status(thd_id);
-  else if (x < 0.04 + 0.04 + 0.04 + 0.43)
+  if (x < g_perc_payment)
     gen_payment(thd_id);
   else
     gen_new_order(thd_id);
+  //if (x < 0.04)
+  //  gen_stock_level(thd_id);
+  //else if (x < 0.04 + 0.04)
+  //  gen_delivery(thd_id);
+  //else if (x < 0.04 + 0.04 + 0.04)
+  //  gen_order_status(thd_id);
+  //else if (x < 0.04 + 0.04 + 0.04 + 0.43)
+  //  gen_payment(thd_id);
+  //else
+  //  gen_new_order(thd_id);
 #endif
 
 #if WORKLOAD == TPCC && TPCC_SPLIT_DELIVERY

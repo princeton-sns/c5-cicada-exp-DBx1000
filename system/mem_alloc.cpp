@@ -184,13 +184,13 @@ void* mem_alloc::alloc(uint64_t size, uint64_t part_id) {
   else
     ptr = _mm_malloc(size, CL_SIZE);
 
-  if (size >= 1048576 * 2 && part_id != (uint64_t)-1) {
-    auto node = part_id % 2;
-    struct bitmask* bm = numa_allocate_nodemask();
-    numa_bitmask_setbit(bm, node);
-    numa_interleave_memory(ptr, size, bm);
-    numa_free_nodemask(bm);
-  }
+  //if (size >= 1048576 * 2 && part_id != (uint64_t)-1) {
+  //  auto node = part_id % 2;
+  //  struct bitmask* bm = numa_allocate_nodemask();
+  //  numa_bitmask_setbit(bm, node);
+  //  numa_interleave_memory(ptr, size, bm);
+  //  numa_free_nodemask(bm);
+  //}
 
   // if (size > BlockSizes[SizeNum - 1])
   //   ptr = malloc(size);

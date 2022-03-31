@@ -4,7 +4,10 @@
 /***********************************************/
 // Simulation + Hardware
 /***********************************************/
-#define THREAD_CNT					4
+#define THREAD_CNT				1
+#define IO_CNT            1
+#define SCHEDULER_CNT			1
+#define WORKER_CNT				1
 #define PART_CNT					1
 // each transaction only accesses 1 virtual partition. But the lock/ts manager and index are not aware of such partitioning. VIRTUAL_PART_CNT describes the request distribution and is only used to generate queries. For HSTORE, VIRTUAL_PART_CNT should be the same as PART_CNT.
 #define VIRTUAL_PART_CNT			1
@@ -35,6 +38,9 @@
 // [RCU_ALLOC]
 #define RCU_ALLOC 					false
 #define RCU_ALLOC_SIZE     (20 * 1073741824UL)	// 20 GB
+
+// MICA Page pool size (in GiB)
+#define MICA_PAGE_POOL_SIZE                             32
 
 /***********************************************/
 // Concurrency Control
@@ -101,8 +107,20 @@
 /***********************************************/
 // Logging
 /***********************************************/
-#define LOG_COMMAND					false
-#define LOG_REDO					false
+#define MICA_LOGGER MICA_LOG_NULL
+#define MICA_LOG_INIT_DIR "/mnt/huge/cicada/log/init"
+#define MICA_LOG_WARMUP_DIR "/mnt/huge/cicada/log/warmup"
+#define MICA_LOG_WORKLOAD_DIR "/mnt/huge/cicada/log/workload"
+#define MICA_RELAY_INIT_DIR "/mnt/huge/cicada/relay/init"
+#define MICA_RELAY_WARMUP_DIR "/mnt/huge/cicada/relay/warmup"
+#define MICA_RELAY_WORKLOAD_DIR "/mnt/huge/cicada/relay/workload"
+#define MICA_REPL_ENABLED false
+#define MICA_CCC MICA_CCC_NONE
+
+#define MICA_REPL_USE_UPSERT false
+#define MICA_REPL_UPSERT_ASSUME_NEW false
+
+// LOG_BATCH_TIME doesn't seem to do anything
 #define LOG_BATCH_TIME				10 // in ms
 
 /***********************************************/
@@ -166,6 +184,7 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 #define LASTNAME_LEN 				16
 
 #define DIST_PER_WARE				10
+#define CUST_PER_DIST				3000
 
 // ==== [TATP] ====
 #define TATP_DEFAULT_NUM_SUBSCRIBERS 100000
@@ -180,6 +199,15 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 
 #define TATP_SCALE_FACTOR 1
 #define TATP_SUB_SIZE (TATP_DEFAULT_NUM_SUBSCRIBERS * TATP_SCALE_FACTOR)
+
+// ==== [INSERT] ====
+#define INSERT_INSERTS_PER_TXN 1
+
+// ==== [UPDATE] ====
+#define UPDATE_UPDATES_PER_TXN 1
+
+// ==== [ADVERSARIAL] ====
+#define ADVERSARIAL_INSERTS_PER_TXN 1
 
 /***********************************************/
 // TODO centralized CC management.
@@ -225,6 +253,9 @@ extern TestCases					g_test_case;
 #define TPCC						2
 #define TATP						3
 #define TEST						4
+#define INSERT					5
+#define UPDATE					6
+#define ADVERSARIAL			7
 // Concurrency Control Algorithm
 #define NO_WAIT						1
 #define WAIT_DIE					2
@@ -242,6 +273,13 @@ extern TestCases					g_test_case;
 #define SERIALIZABLE				1
 #define SNAPSHOT					2
 #define REPEATABLE_READ				3
+// MICA Loggers
+#define MICA_LOG_NULL 1
+#define MICA_LOG_MMAP 2
+// MICA CCC
+#define MICA_CCC_NONE 1
+#define MICA_CCC_COPYCAT 2
+#define MICA_CCC_KUAFU 3
 // TIMESTAMP allocation method.
 #define TS_MUTEX					1
 #define TS_CAS						2

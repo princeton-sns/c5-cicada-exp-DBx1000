@@ -23,11 +23,26 @@ void workload::init_mica() {
 #if CC_ALG == MICA
   auto config = ::mica::util::Config::load_file("mica.json");
   mica_alloc = new MICAAlloc(config.get("alloc"));
-  auto page_pool_size = 32 * uint64_t(1073741824);  // 32 GiB
-  mica_page_pools[0] = new MICAPagePool(mica_alloc, page_pool_size / 2, 0);
-  mica_page_pools[1] = new MICAPagePool(mica_alloc, page_pool_size / 2, 1);
+  auto page_pool_size = MICA_PAGE_POOL_SIZE * uint64_t(1073741824);  // in GiB
+  std::size_t lcore0 = ::mica::util::lcore.first_lcore_id_with_numa_id(0);
+  std::size_t lcore1 = ::mica::util::lcore.first_lcore_id_with_numa_id(1);
+  assert(lcore0 != static_cast<size_t>(-1));
+  assert(lcore1 != static_cast<size_t>(-1));
+  mica_page_pools[0] = new MICAPagePool(mica_alloc, page_pool_size / 2, lcore0);
+  mica_page_pools[1] = new MICAPagePool(mica_alloc, page_pool_size / 2, lcore1);
+#if MICA_LOGGER == MICA_LOG_NULL
   mica_logger = new MICALogger();
+#elif MICA_LOGGER == MICA_LOG_MMAP
+  mica_logger = new MICALogger(std::string{MICA_LOG_INIT_DIR}, g_thread_cnt);
+#endif
   mica_db = new MICADB(mica_page_pools, mica_logger, &mica_sw, g_thread_cnt);
+#if MICA_REPL_ENABLED
+  uint16_t num_threads = (uint16_t)std::max((std::size_t)g_io_cnt, lcore1) + g_worker_cnt + 1;
+  mica_replica = new MICADB(mica_page_pools, mica_logger, &mica_sw, num_threads, true);
+#endif
+#if MICA_CCC != MICA_CCC_NONE
+  mica_ccc = new MICACCC(mica_replica, g_thread_cnt, g_worker_cnt);
+#endif
   printf("MICA initialized\n");
 #endif
 }
@@ -165,6 +180,10 @@ RC workload::init_schema(string schema_file) {
         table_size = stoi(items[1]) * g_num_wh;
 #elif WORKLOAD == TATP
       table_size = stoi(items[1]) * TATP_SCALE_FACTOR;
+#elif WORKLOAD == UPDATE
+      table_size = g_synth_table_size;
+#elif WORKLOAD == ADVERSARIAL
+      table_size = g_thread_cnt * g_adversarial_inserts_per_txn * MAX_TXN_PER_PART;
 #endif
 
       if (strncmp(iname.c_str(), "ORDERED_", 8) == 0) {

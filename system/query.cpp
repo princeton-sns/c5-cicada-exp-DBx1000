@@ -7,6 +7,9 @@
 #include "tpcc_query.h"
 #include "tpcc_helper.h"
 #include "tatp_query.h"
+#include "insert_query.h"
+#include "update_query.h"
+#include "adversarial_query.h"
 
 /*************************************************/
 //     class Query_queue
@@ -88,6 +91,12 @@ Query_thd::init(workload * h_wl, int thread_id) {
 	queries = (tpcc_query *) mem_allocator.alloc(sizeof(tpcc_query) * request_cnt, thread_id);
 #elif WORKLOAD == TATP
 	queries = (tatp_query *) mem_allocator.alloc(sizeof(tatp_query) * request_cnt, thread_id);
+#elif WORKLOAD == INSERT
+	queries = (insert_query *) mem_allocator.alloc(sizeof(insert_query) * request_cnt, thread_id);
+#elif WORKLOAD == UPDATE
+	queries = (update_query *) mem_allocator.alloc(sizeof(update_query) * request_cnt, thread_id);
+#elif WORKLOAD == ADVERSARIAL
+	queries = (adversarial_query *) mem_allocator.alloc(sizeof(adversarial_query) * request_cnt, thread_id);
 #else
 		assert(false);
 #endif
@@ -101,6 +110,15 @@ Query_thd::init(workload * h_wl, int thread_id) {
 #elif WORKLOAD == TATP
 		new(&queries[qid]) tatp_query();
 		queries[qid].init(thread_id, h_wl);
+#elif WORKLOAD == INSERT
+		new(&queries[qid]) insert_query();
+		queries[qid].init(thread_id, h_wl, qid);
+#elif WORKLOAD == UPDATE
+		new(&queries[qid]) update_query();
+		queries[qid].init(thread_id, h_wl, qid);
+#elif WORKLOAD == ADVERSARIAL
+		new(&queries[qid]) adversarial_query();
+		queries[qid].init(thread_id, h_wl, qid);
 #endif
 	}
 }

@@ -50,6 +50,9 @@ bool g_prt_lat_distr = PRT_LAT_DISTR;
 UInt32 g_part_cnt = PART_CNT;
 UInt32 g_virtual_part_cnt = VIRTUAL_PART_CNT;
 UInt32 g_thread_cnt = THREAD_CNT;
+UInt32 g_io_cnt = IO_CNT;
+UInt32 g_scheduler_cnt = SCHEDULER_CNT;
+UInt32 g_worker_cnt = WORKER_CNT;
 UInt64 g_synth_table_size = SYNTH_TABLE_SIZE;
 UInt32 g_req_per_query = REQ_PER_QUERY;
 UInt32 g_field_per_tuple = FIELD_PER_TUPLE;
@@ -66,14 +69,21 @@ char * output_file = NULL;
 
 map<string, string> g_params;
 
+UInt32 g_cust_per_dist = CUST_PER_DIST;
 #if TPCC_SMALL
 UInt32 g_max_items = 10000;
-UInt32 g_cust_per_dist = 2000;
+//UInt32 g_cust_per_dist = 2000;
 #else
 UInt32 g_max_items = 100000;
-UInt32 g_cust_per_dist = 3000;
+//UInt32 g_cust_per_dist = 3000;
 #endif
 uint64_t g_max_orderline = uint64_t(1) << 32;
 
 uint64_t g_sub_size = TATP_SUB_SIZE;
 
+// Insert
+uint64_t g_insert_inserts_per_txn = INSERT_INSERTS_PER_TXN;
+// Update
+uint64_t g_update_updates_per_txn = UPDATE_UPDATES_PER_TXN;
+// Adversarial
+uint64_t g_adversarial_inserts_per_txn = ADVERSARIAL_INSERTS_PER_TXN;

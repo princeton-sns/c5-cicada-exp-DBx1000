@@ -489,7 +489,7 @@ bool txn_man::insert_row(table_t* tbl, row_t*& row, int part_id,
 	insert_rows[insert_cnt ++] = row;
 
 #if CC_ALG == WAIT_DIE || CC_ALG == NO_WAIT || CC_ALG == DL_DETECT
-	auto rc = row->manager->lock_get(LOCK_EX, this);
+	auto rc = row->manager->lock_get(LOCK_EXCL, this);
   assert(rc == RCOK);
 #elif CC_ALG == TICTOC || CC_ALG == SILO
 	row->manager->lock();

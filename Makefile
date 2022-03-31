@@ -1,7 +1,7 @@
-#CC=g++
-CC=g++-5
+CC=g++
+#CC=g++-5
 #CFLAGS=-Wall -g -std=c++0x
-CFLAGS=-Wall -g -std=c++14
+CFLAGS=-Wall -g -std=c++17
 
 .SUFFIXES: .o .cpp .h
 
@@ -15,7 +15,8 @@ CFLAGS += $(INCLUDE) -D NOGRAPHITE=1 -Wno-unused-function -O3 #-fno-omit-frame-p
 #CFLAGS += $(INCLUDE) -D NOGRAPHITE=1 -Wno-unused-function -O0 -fno-omit-frame-pointer
 
 #LDFLAGS = -Wall -L. -L./libs -pthread -g -lrt -std=c++0x -O3 -ljemalloc
-LDFLAGS = -Wall -L. -L./libs -L../cicada-engine/build -pthread -g -lrt -std=c++14 -lcommon -lnuma -ljemalloc -O3
+#LDFLAGS = -Wall -L. -L./libs -L../cicada-engine/build -pthread -g -lrt -std=c++14 -lcommon -lnuma -ljemalloc -O3
+LDFLAGS = -L. -L../cicada-engine/build -pthread -lrt -lcommon -lnuma -ljemalloc
 LDFLAGS += $(CFLAGS)
 
 CPPS = $(foreach dir, $(SRC_DIRS), $(wildcard $(dir)*.cpp))

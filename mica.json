@@ -1,7 +1,7 @@
 {
   "alloc": {
-    /*"clean_files_on_init": true,
-     *     "verbose": true*/
-    "num_pages_to_free": [4096, 4096] /* 16 GiB */
+    "clean_files_on_init": true,
+    "verbose": false,
+    "num_pages_to_free": [12288, 12288]
   }
 }

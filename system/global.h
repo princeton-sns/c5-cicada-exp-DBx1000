@@ -32,6 +32,9 @@
 #if CC_ALG == MICA
 #define NDEBUG
 #include "mica/transaction/db.h"
+#include "mica/transaction/logging.h"
+#include "mica/transaction/replication.h"
+#include "mica/util/posix_io.h"
 #undef NDEBUG
 struct DBConfig : public ::mica::transaction::BasicDBConfig {
   // static constexpr bool kVerbose = true;
@@ -59,7 +62,7 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
     static constexpr bool kBackoff = false;
 #endif
 
-  // static constexpr bool kPrintBackoff = true;
+  static constexpr bool kPrintBackoff = false;
   // static constexpr bool kPairwiseSleeping = true;
 
 #if MICA_USE_FIXED_BACKOFF
@@ -79,16 +82,38 @@ struct DBConfig : public ::mica::transaction::BasicDBConfig {
   ConcurrentTimestamp;
 #endif
 
-  // static constexpr bool kCollectCommitStats = false;
+  static constexpr bool kCollectCommitStats = true;
   // static constexpr bool kCollectExtraCommitStats = true;
   // static constexpr bool kCollectProcessingStats = true;
   // static constexpr bool kCollectROTXStalenessStats = true;
   // typedef ::mica::transaction::ActiveTiming Timing;
 
+  // Logging and replication
+  static constexpr uint64_t kPageSize = 2 * 1048576;
+  static constexpr uint64_t kLogSegmentsPerPage = 1;
+  static constexpr uint64_t kLogFileSize = 4 * kPageSize;
+
+#if MICA_LOGGER == MICA_LOG_MMAP
+  typedef ::mica::transaction::MmapLogger2<DBConfig> Logger;
+#else
   typedef ::mica::transaction::NullLogger<DBConfig> Logger;
+#endif
+
+#if MICA_CCC == MICA_CCC_COPYCAT
+  typedef ::mica::transaction::CopyCat<DBConfig> CCC;
+#elif MICA_CCC == MICA_CCC_KUAFU
+  typedef ::mica::transaction::KuaFu<DBConfig> CCC;
+#endif
+
+  static constexpr bool kReplUseUpsert = MICA_REPL_USE_UPSERT;
+  static constexpr bool kUpsertAssumeNewRow = MICA_REPL_UPSERT_ASSUME_NEW;
 };
+
 typedef DBConfig::Alloc MICAAlloc;
 typedef DBConfig::Logger MICALogger;
+#if MICA_CCC != MICA_CCC_NONE
+typedef DBConfig::CCC MICACCC;
+#endif
 typedef DBConfig::Timing MICATiming;
 typedef ::mica::transaction::PagePool<DBConfig> MICAPagePool;
 typedef ::mica::transaction::DB<DBConfig> MICADB;
@@ -159,6 +184,9 @@ extern bool g_prt_lat_distr;
 extern UInt32 g_part_cnt;
 extern UInt32 g_virtual_part_cnt;
 extern UInt32 g_thread_cnt;
+extern UInt32 g_io_cnt;
+extern UInt32 g_scheduler_cnt;
+extern UInt32 g_worker_cnt;
 extern ts_t g_abort_penalty;
 extern bool g_central_man;
 extern UInt32 g_ts_alloc;
@@ -196,6 +224,13 @@ extern uint64_t g_max_orderline;
 // TATP
 extern uint64_t g_sub_size;
 
+// INSERT
+extern uint64_t g_insert_inserts_per_txn;
+// UPDATE
+extern uint64_t g_update_updates_per_txn;
+// ADVERSARIAL
+extern uint64_t g_adversarial_inserts_per_txn;
+
 enum RC { RCOK, Commit, Abort, WAIT, ERROR, FINISH};
 
 /* Thread */
@@ -220,7 +255,7 @@ typedef uint64_t (*func_ptr)(idx_key_t);	// part_id func_ptr(index_key);
 /* general concurrency control */
 enum access_t {RD, WR, XP, SCAN, PEEK, SKIP};
 /* LOCK */
-enum lock_t {LOCK_EX, LOCK_SH, LOCK_NONE };
+enum lock_t {LOCK_EXCL, LOCK_SHAR, LOCK_NONE};
 /* TIMESTAMP */
 enum TsType {R_REQ, W_REQ, P_REQ, XP_REQ};
 

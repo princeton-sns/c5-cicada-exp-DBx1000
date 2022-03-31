@@ -204,27 +204,27 @@ bool tpcc_txn_man::payment_updateCustomer(row_t* row, uint64_t c_id,
   row->get_value(C_PAYMENT_CNT, c_payment_cnt);
   row->set_value(C_PAYMENT_CNT, c_payment_cnt + 1);
 
-#if TPCC_FULL
-  const char* c_credit = row->get_value(C_CREDIT);
-  if (strstr(c_credit, "BC")) {
-    char c_new_data[501];
-    sprintf(c_new_data, "%4d %2d %4d %2d %4d $%7.2f | ", (int)c_id, (int)c_d_id,
-            (int)c_w_id, (int)d_id, (int)w_id, h_amount);
-
-#if TPCC_CF
-    auto index = _wl->i_customer_id;
-    auto key = custKey(c_id, d_id, w_id);
-    auto part_id = wh_to_part(w_id);
-    const access_t cf_access_type[] = {SKIP, SKIP, WR};
-    auto row = search(index, key, part_id, SKIP, cf_access_type);
-    if (row == NULL) return false;
-#endif
-
-    const char* c_data = row->get_value(C_DATA);
-    strncat(c_new_data, c_data, 500 - strlen(c_new_data));
-    row->set_value(C_DATA, c_new_data);
-  }
-#endif
+//#if TPCC_FULL
+//  const char* c_credit = row->get_value(C_CREDIT);
+//  if (strstr(c_credit, "BC")) {
+//    char c_new_data[501];
+//    sprintf(c_new_data, "%4d %2d %4d %2d %4d $%7.2f | ", (int)c_id, (int)c_d_id,
+//            (int)c_w_id, (int)d_id, (int)w_id, h_amount);
+//
+//#if TPCC_CF
+//    auto index = _wl->i_customer_id;
+//    auto key = custKey(c_id, d_id, w_id);
+//    auto part_id = wh_to_part(w_id);
+//    const access_t cf_access_type[] = {SKIP, SKIP, WR};
+//    auto row = search(index, key, part_id, SKIP, cf_access_type);
+//    if (row == NULL) return false;
+//#endif
+//
+//    const char* c_data = row->get_value(C_DATA);
+//    strncat(c_new_data, c_data, 500 - strlen(c_new_data));
+//    row->set_value(C_DATA, c_new_data);
+//  }
+//#endif
   return true;
 }
 
@@ -259,21 +259,6 @@ bool tpcc_txn_man::payment_insertHistory(uint64_t c_id, uint64_t c_d_id,
 RC tpcc_txn_man::run_payment(tpcc_query* query) {
   auto& arg = query->args.payment;
 
-  auto warehouse = payment_getWarehouse(arg.w_id);
-  if (warehouse == NULL) {
-    FAIL_ON_ABORT();
-    return finish(Abort);
-  }
-
-  payment_updateWarehouseBalance(warehouse, arg.h_amount);
-
-  auto district = payment_getDistrict(arg.w_id, arg.d_id);
-  if (district == NULL) {
-    FAIL_ON_ABORT();
-    return finish(Abort);
-  };
-  payment_updateDistrictBalance(district, arg.h_amount);
-
   auto c_id = arg.c_id;
   row_t* customer;
   if (!arg.by_last_name)
@@ -290,6 +275,20 @@ RC tpcc_txn_man::run_payment(tpcc_query* query) {
     FAIL_ON_ABORT();
     return finish(Abort);
   }
+
+  auto district = payment_getDistrict(arg.w_id, arg.d_id);
+  if (district == NULL) {
+    FAIL_ON_ABORT();
+    return finish(Abort);
+  };
+  payment_updateDistrictBalance(district, arg.h_amount);
+
+  auto warehouse = payment_getWarehouse(arg.w_id);
+  if (warehouse == NULL) {
+    FAIL_ON_ABORT();
+    return finish(Abort);
+  }
+  payment_updateWarehouseBalance(warehouse, arg.h_amount);
 
 #if TPCC_INSERT_ROWS
   char w_name[11];
@@ -538,23 +537,35 @@ RC tpcc_txn_man::run_new_order(tpcc_query* query) {
   auto& arg = query->args.new_order;
 
   row_t* items[15];
+  row_t* stocks[15];
   assert(arg.ol_cnt <= sizeof(items) / sizeof(items[0]));
   for (uint64_t ol_number = 1; ol_number <= arg.ol_cnt; ol_number++) {
-    items[ol_number - 1] =
-        new_order_getItemInfo(arg.items[ol_number - 1].ol_i_id);
+    uint64_t ol_i_id = arg.items[ol_number - 1].ol_i_id;
+    uint64_t ol_supply_w_id = arg.items[ol_number - 1].ol_supply_w_id;
+    uint64_t ol_quantity = arg.items[ol_number - 1].ol_quantity;
+
+    items[ol_number - 1] = new_order_getItemInfo(ol_i_id);
     // printf("ol_i_id %d\n", (int)arg.items[ol_number - 1].ol_i_id);
     if (items[ol_number - 1] == NULL) {
       assert(false);
       // FAIL_ON_ABORT();
       return finish(Abort);
     };
+
+    stocks[ol_number - 1] = new_order_getStockInfo(ol_i_id, ol_supply_w_id);
+    if (stocks[ol_number - 1] == NULL) {
+      FAIL_ON_ABORT();
+      return finish(Abort);
+    };
+    bool remote = ol_supply_w_id != arg.w_id;
+    new_order_updateStock(stocks[ol_number - 1], ol_quantity, remote);
   }
 
-  auto warehouse = new_order_getWarehouseTaxRate(arg.w_id);
-  if (warehouse == NULL) {
-    FAIL_ON_ABORT();
-    return finish(Abort);
-  };
+  //auto warehouse = new_order_getWarehouseTaxRate(arg.w_id);
+  //if (warehouse == NULL) {
+  //  FAIL_ON_ABORT();
+  //  return finish(Abort);
+  //};
   // double w_tax;
   // warehouse->get_value(W_TAX, w_tax);
 
@@ -565,15 +576,14 @@ RC tpcc_txn_man::run_new_order(tpcc_query* query) {
   };
   // double d_tax;
   // r_dist_local->get_value(D_TAX, d_tax);
-
   int64_t o_id;
   new_order_incrementNextOrderId(district, &o_id);
 
-  auto customer = new_order_getCustomer(arg.w_id, arg.d_id, arg.c_id);
-  if (customer == NULL) {
-    FAIL_ON_ABORT();
-    return finish(Abort);
-  };
+  //auto customer = new_order_getCustomer(arg.w_id, arg.d_id, arg.c_id);
+  //if (customer == NULL) {
+  //  FAIL_ON_ABORT();
+  //  return finish(Abort);
+  //};
 // uint64_t c_discount;
 // customer->get_value(C_DISCOUNT, c_discount);
 
@@ -594,14 +604,7 @@ RC tpcc_txn_man::run_new_order(tpcc_query* query) {
     uint64_t ol_i_id = arg.items[ol_number - 1].ol_i_id;
     uint64_t ol_supply_w_id = arg.items[ol_number - 1].ol_supply_w_id;
     uint64_t ol_quantity = arg.items[ol_number - 1].ol_quantity;
-
-    auto stock = new_order_getStockInfo(ol_i_id, ol_supply_w_id);
-    if (stock == NULL) {
-      FAIL_ON_ABORT();
-      return finish(Abort);
-    };
-    bool remote = ol_supply_w_id != arg.w_id;
-    new_order_updateStock(stock, ol_quantity, remote);
+    auto stock = stocks[ol_number - 1];
 
 #if TPCC_INSERT_ROWS
     double i_price;

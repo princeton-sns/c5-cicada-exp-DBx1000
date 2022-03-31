@@ -184,6 +184,7 @@ extern TPCCTxnType 					g_tpcc_txn_type;
 #define LASTNAME_LEN 				16
 
 #define DIST_PER_WARE				10
+#define CUST_PER_DIST				3000
 
 // ==== [TATP] ====
 #define TATP_DEFAULT_NUM_SUBSCRIBERS 100000
